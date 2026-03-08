@@ -28,7 +28,10 @@ jobs:
           dotnet-version: '10.0.x'
 
       - name: Restore dependencies
-        run: dotnet restore KASA.slnx
+        run: dotnet restore KASA.slnx --ignore-failed-sources
+        working-directory: .
+        env:
+          DOTNET_SKIP_FIRST_TIME_EXPERIENCE: true
 
       - name: Build
         run: dotnet build KASA.slnx --no-restore --configuration Release
@@ -129,3 +132,5 @@ jobs:
             sleep 15
             docker compose ps
             echo "Deploy completato: $(date)"
+
+
