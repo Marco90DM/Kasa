@@ -1,0 +1,15 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/KASA.API/KASA.API.csproj" />
+    <Project Path="src/KASA.Application/KASA.Application.csproj" />
+    <Project Path="src/KASA.Domain/KASA.Domain.csproj" />
+    <Project Path="src/KASA.Infrastructure/KASA.Infrastructure.csproj" />
+    <Project Path="src/KASA.Mobile/KASA.Mobile.csproj" />
+    <Project Path="src/KASA.Web/KASA.Web.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/KASA.Application.Tests/KASA.Application.Tests.csproj" />
+    <Project Path="tests/KASA.Domain.Tests/KASA.Domain.Tests.csproj" />
+    <Project Path="tests/KASA.Integration.Tests/KASA.Integration.Tests.csproj" />
+  </Folder>
+</Solution>
