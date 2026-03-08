@@ -129,7 +129,7 @@ jobs:
 
   deploy:
     name: Deploy to Production
-    runs-on: ubuntu-latest
+    runs-on: self-hosted
     needs: docker-build
     if: github.ref == 'refs/heads/main' && github.event_name == 'push'
     environment: production
@@ -151,5 +151,6 @@ jobs:
             sleep 15
             docker compose ps
             echo "Deploy completato: $(date)"
+
 
 
