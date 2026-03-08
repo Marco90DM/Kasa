@@ -12,9 +12,6 @@ env:
   WEB_IMAGE: ghcr.io/marco90dm/kasa-web
 
 jobs:
-  # =============================================================
-  # JOB 1 — Build & Test
-  # =============================================================
   build-and-test:
     name: Build & Test
     runs-on: ubuntu-latest
@@ -27,21 +24,44 @@ jobs:
         with:
           dotnet-version: '10.0.x'
 
-      - name: Restore dependencies
-        run: dotnet restore KASA.slnx --ignore-failed-sources
-        working-directory: .
-        env:
-          DOTNET_SKIP_FIRST_TIME_EXPERIENCE: true
+      - name: Restore Domain
+        run: dotnet restore src/KASA.Domain/KASA.Domain.csproj
+
+      - name: Restore Application
+        run: dotnet restore src/KASA.Application/KASA.Application.csproj
+
+      - name: Restore Infrastructure
+        run: dotnet restore src/KASA.Infrastructure/KASA.Infrastructure.csproj
+
+      - name: Restore API
+        run: dotnet restore src/KASA.API/KASA.API.csproj
+
+      - name: Restore Web
+        run: dotnet restore src/KASA.Web/KASA.Web.csproj
+
+      - name: Restore Domain.Tests
+        run: dotnet restore tests/KASA.Domain.Tests/KASA.Domain.Tests.csproj
+
+      - name: Restore Application.Tests
+        run: dotnet restore tests/KASA.Application.Tests/KASA.Application.Tests.csproj
+
+      - name: Restore Integration.Tests
+        run: dotnet restore tests/KASA.Integration.Tests/KASA.Integration.Tests.csproj
 
       - name: Build
-        run: dotnet build KASA.slnx --no-restore --configuration Release
+        run: |
+          dotnet build src/KASA.Domain/KASA.Domain.csproj -c Release --no-restore
+          dotnet build src/KASA.Application/KASA.Application.csproj -c Release --no-restore
+          dotnet build src/KASA.Infrastructure/KASA.Infrastructure.csproj -c Release --no-restore
+          dotnet build src/KASA.API/KASA.API.csproj -c Release --no-restore
+          dotnet build src/KASA.Web/KASA.Web.csproj -c Release --no-restore
 
       - name: Test
-        run: dotnet test KASA.slnx --no-build --configuration Release --verbosity normal
+        run: |
+          dotnet test tests/KASA.Domain.Tests/KASA.Domain.Tests.csproj -c Release --verbosity normal
+          dotnet test tests/KASA.Application.Tests/KASA.Application.Tests.csproj -c Release --verbosity normal
+          dotnet test tests/KASA.Integration.Tests/KASA.Integration.Tests.csproj -c Release --verbosity normal
 
-  # =============================================================
-  # JOB 2 — Build & Push Docker images (solo su main e develop)
-  # =============================================================
   docker-build:
     name: Docker Build & Push
     runs-on: ubuntu-latest
@@ -55,7 +75,7 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Login to GitHub Container Registry
+      - name: Login to GHCR
         uses: docker/login-action@v3
         with:
           registry: ghcr.io
@@ -85,7 +105,7 @@ jobs:
             type=sha,prefix=sha-
             type=raw,value=latest,enable=${{ github.ref == 'refs/heads/main' }}
 
-      - name: Build & Push API image
+      - name: Build & Push API
         uses: docker/build-push-action@v5
         with:
           context: .
@@ -96,7 +116,7 @@ jobs:
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
-      - name: Build & Push Web image
+      - name: Build & Push Web
         uses: docker/build-push-action@v5
         with:
           context: .
@@ -107,9 +127,6 @@ jobs:
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
-  # =============================================================
-  # JOB 3 — Deploy su VPS (solo su main)
-  # =============================================================
   deploy:
     name: Deploy to Production
     runs-on: ubuntu-latest
@@ -132,5 +149,3 @@ jobs:
             sleep 15
             docker compose ps
             echo "Deploy completato: $(date)"
-
-
