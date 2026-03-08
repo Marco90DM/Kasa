@@ -39,38 +39,33 @@ jobs:
       - name: Restore Web
         run: dotnet restore src/KASA.Web/KASA.Web.csproj
 
-      - name: Restore Domain.Tests
+      - name: Restore Domain Tests
         run: dotnet restore tests/KASA.Domain.Tests/KASA.Domain.Tests.csproj
 
-      - name: Restore Application.Tests
+      - name: Restore Application Tests
         run: dotnet restore tests/KASA.Application.Tests/KASA.Application.Tests.csproj
 
-      - name: Restore Integration.Tests
+      - name: Restore Integration Tests
         run: dotnet restore tests/KASA.Integration.Tests/KASA.Integration.Tests.csproj
 
       - name: Build
         run: |
-          dotnet build src/KASA.Domain/KASA.Domain.csproj -c Release --no-restore
-          dotnet build src/KASA.Application/KASA.Application.csproj -c Release --no-restore
-          dotnet build src/KASA.Infrastructure/KASA.Infrastructure.csproj -c Release --no-restore
-          dotnet build src/KASA.API/KASA.API.csproj -c Release --no-restore
-          dotnet build src/KASA.Web/KASA.Web.csproj -c Release --no-restore
+          dotnet build src/KASA.Domain/KASA.Domain.csproj --no-restore
+          dotnet build src/KASA.Application/KASA.Application.csproj --no-restore
+          dotnet build src/KASA.Infrastructure/KASA.Infrastructure.csproj --no-restore
+          dotnet build src/KASA.API/KASA.API.csproj --no-restore
+          dotnet build src/KASA.Web/KASA.Web.csproj --no-restore
 
       - name: Test
         run: |
-          dotnet test tests/KASA.Domain.Tests/KASA.Domain.Tests.csproj -c Release --verbosity normal
-          dotnet test tests/KASA.Application.Tests/KASA.Application.Tests.csproj -c Release --verbosity normal
-          dotnet test tests/KASA.Integration.Tests/KASA.Integration.Tests.csproj -c Release --verbosity normal
+          dotnet test tests/KASA.Domain.Tests/KASA.Domain.Tests.csproj --no-restore
+          dotnet test tests/KASA.Application.Tests/KASA.Application.Tests.csproj --no-restore
+          dotnet test tests/KASA.Integration.Tests/KASA.Integration.Tests.csproj --no-restore
 
-  docker-build:
+  docker:
     name: Docker Build & Push
     runs-on: ubuntu-latest
     needs: build-and-test
-    if: github.event_name == 'push'
-    permissions:
-      contents: read
-      packages: write
-
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -82,75 +77,33 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GHCR_TOKEN }}
 
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
-
-      - name: Extract metadata for API
-        id: meta-api
-        uses: docker/metadata-action@v5
-        with:
-          images: ${{ env.API_IMAGE }}
-          tags: |
-            type=ref,event=branch
-            type=sha,prefix=sha-
-            type=raw,value=latest,enable=${{ github.ref == 'refs/heads/main' }}
-
-      - name: Extract metadata for Web
-        id: meta-web
-        uses: docker/metadata-action@v5
-        with:
-          images: ${{ env.WEB_IMAGE }}
-          tags: |
-            type=ref,event=branch
-            type=sha,prefix=sha-
-            type=raw,value=latest,enable=${{ github.ref == 'refs/heads/main' }}
-
-      - name: Build & Push API
+      - name: Build and push API
         uses: docker/build-push-action@v5
         with:
           context: .
-          file: ./src/KASA.API/Dockerfile
+          file: src/KASA.API/Dockerfile
           push: true
-          tags: ${{ steps.meta-api.outputs.tags }}
-          labels: ${{ steps.meta-api.outputs.labels }}
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
+          tags: ${{ env.API_IMAGE }}:latest
 
-      - name: Build & Push Web
+      - name: Build and push Web
         uses: docker/build-push-action@v5
         with:
           context: .
-          file: ./src/KASA.Web/Dockerfile
+          file: src/KASA.Web/Dockerfile
           push: true
-          tags: ${{ steps.meta-web.outputs.tags }}
-          labels: ${{ steps.meta-web.outputs.labels }}
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
+          tags: ${{ env.WEB_IMAGE }}:latest
 
   deploy:
     name: Deploy to Production
     runs-on: self-hosted
-    needs: docker-build
-    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
-    environment: production
-
+    needs: docker
     steps:
-      - name: Deploy via SSH
-        uses: appleboy/ssh-action@v1.0.3
-        with:
-          host: ${{ secrets.VPS_HOST }}
-          username: ${{ secrets.VPS_USER }}
-          key: ${{ secrets.VPS_SSH_KEY }}
-          port: 2222
-          port: 2222
-          script: |
-            cd /opt/kasa
-            docker login ghcr.io -u marco90dm -p ${{ secrets.GHCR_TOKEN }}
-            docker compose pull api web
-            docker compose up -d --no-deps --force-recreate api web
-            sleep 15
-            docker compose ps
-            echo "Deploy completato: $(date)"
-
-
-
+      - name: Deploy
+        run: |
+          cd /opt/kasa
+          docker login ghcr.io -u marco90dm -p ${{ secrets.GHCR_TOKEN }}
+          docker compose pull api web
+          docker compose up -d --no-deps --force-recreate api web
+          sleep 15
+          docker compose ps
+          echo "Deploy completato: $(date)"
