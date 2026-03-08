@@ -1,0 +1,223 @@
+# KASA — Gestione Integrata del Nucleo Convivente
+
+Piattaforma SaaS multi-tenant per la gestione collaborativa di finanze e alimentazione.
+
+## Stack
+- Backend: .NET 10 / ASP.NET Core 10 / C# 13
+- ORM: Entity Framework Core 10 + Npgsql (PostgreSQL)
+- Frontend Web: Blazor Server + MudBlazor
+- Mobile: .NET MAUI (iOS + Android)
+- Real-time: SignalR
+- Database: PostgreSQL (prod: Azure Flexible Server / dev: Neon serverless)
+
+## Struttura Solution
+
+\\\
+KASA.sln
+├── src/
+│   ├── KASA.Domain/          # Entities, Value Objects, Domain Events
+│   ├── KASA.Application/     # Use Cases, Commands, Queries, MediatR
+│   ├── KASA.Infrastructure/  # EF Core, PostgreSQL, OCR, Email, Push
+│   ├── KASA.API/             # REST Controllers, SignalR Hubs, Auth
+│   ├── KASA.Web/             # Blazor Server + MudBlazor
+│   └── KASA.Mobile/          # .NET MAUI iOS + Android
+└── tests/
+    ├── KASA.Domain.Tests/
+    ├── KASA.Application.Tests/
+    └── KASA.Integration.Tests/
+\\\
+
+## Ambienti
+| Ambiente | Database | Deploy |
+|---|---|---|
+| dev | Neon serverless PostgreSQL | locale |
+| staging | Azure PostgreSQL Flexible Server | Azure App Service |
+| production | Azure PostgreSQL Flexible Server | Azure App Service |
+
+## Avvio locale
+\\\ash
+docker-compose up -d
+dotnet run --project src/KASA.API
+\\\
+"@ | Set-Content README.md
+
+# =============================================================
+# Crea struttura cartelle
+# =============================================================
+ = @("src","tests","docs",".github/workflows")
+ | ForEach-Object { New-Item -ItemType Directory -Force -Path  | Out-Null }
+
+# =============================================================
+# Crea projects
+# =============================================================
+Write-Host "Creazione progetti .NET 10..." -ForegroundColor Cyan
+
+# Domain — classlib netstandard
+dotnet new classlib -n KASA.Domain -o src/KASA.Domain -f net10.0 --force
+Remove-Item src/KASA.Domain/Class1.cs -ErrorAction SilentlyContinue
+
+# Application — classlib
+dotnet new classlib -n KASA.Application -o src/KASA.Application -f net10.0 --force
+Remove-Item src/KASA.Application/Class1.cs -ErrorAction SilentlyContinue
+
+# Infrastructure — classlib
+dotnet new classlib -n KASA.Infrastructure -o src/KASA.Infrastructure -f net10.0 --force
+Remove-Item src/KASA.Infrastructure/Class1.cs -ErrorAction SilentlyContinue
+
+# API — webapi
+dotnet new webapi -n KASA.API -o src/KASA.API -f net10.0 --force
+
+# Web — blazor server
+dotnet new blazor -n KASA.Web -o src/KASA.Web -f net10.0 --force
+
+# Mobile — maui
+dotnet new maui -n KASA.Mobile -o src/KASA.Mobile --force
+
+# Tests
+dotnet new xunit -n KASA.Domain.Tests -o tests/KASA.Domain.Tests -f net10.0 --force
+dotnet new xunit -n KASA.Application.Tests -o tests/KASA.Application.Tests -f net10.0 --force
+dotnet new xunit -n KASA.Integration.Tests -o tests/KASA.Integration.Tests -f net10.0 --force
+
+# =============================================================
+# Crea solution e aggiungi progetti
+# =============================================================
+Write-Host "Creazione solution..." -ForegroundColor Cyan
+dotnet new sln -n KASA --force
+
+dotnet sln add src/KASA.Domain/KASA.Domain.csproj
+dotnet sln add src/KASA.Application/KASA.Application.csproj
+dotnet sln add src/KASA.Infrastructure/KASA.Infrastructure.csproj
+dotnet sln add src/KASA.API/KASA.API.csproj
+dotnet sln add src/KASA.Web/KASA.Web.csproj
+dotnet sln add src/KASA.Mobile/KASA.Mobile.csproj
+dotnet sln add tests/KASA.Domain.Tests/KASA.Domain.Tests.csproj
+dotnet sln add tests/KASA.Application.Tests/KASA.Application.Tests.csproj
+dotnet sln add tests/KASA.Integration.Tests/KASA.Integration.Tests.csproj
+
+# =============================================================
+# Project references
+# =============================================================
+Write-Host "Configurazione riferimenti tra progetti..." -ForegroundColor Cyan
+
+dotnet add src/KASA.Application/KASA.Application.csproj reference src/KASA.Domain/KASA.Domain.csproj
+dotnet add src/KASA.Infrastructure/KASA.Infrastructure.csproj reference src/KASA.Application/KASA.Application.csproj
+dotnet add src/KASA.API/KASA.API.csproj reference src/KASA.Infrastructure/KASA.Infrastructure.csproj
+dotnet add src/KASA.API/KASA.API.csproj reference src/KASA.Application/KASA.Application.csproj
+dotnet add src/KASA.Web/KASA.Web.csproj reference src/KASA.Application/KASA.Application.csproj
+dotnet add tests/KASA.Domain.Tests/KASA.Domain.Tests.csproj reference src/KASA.Domain/KASA.Domain.csproj
+dotnet add tests/KASA.Application.Tests/KASA.Application.Tests.csproj reference src/KASA.Application/KASA.Application.csproj
+dotnet add tests/KASA.Integration.Tests/KASA.Integration.Tests.csproj reference src/KASA.Infrastructure/KASA.Infrastructure.csproj
+
+# =============================================================
+# NuGet packages core
+# =============================================================
+Write-Host "Installazione NuGet packages..." -ForegroundColor Cyan
+
+# Domain
+dotnet add src/KASA.Domain/KASA.Domain.csproj package MediatR --version 12.4.1
+
+# Application
+dotnet add src/KASA.Application/KASA.Application.csproj package MediatR --version 12.4.1
+dotnet add src/KASA.Application/KASA.Application.csproj package FluentValidation --version 11.11.0
+dotnet add src/KASA.Application/KASA.Application.csproj package FluentValidation.DependencyInjectionExtensions --version 11.11.0
+dotnet add src/KASA.Application/KASA.Application.csproj package AutoMapper --version 13.0.1
+
+# Infrastructure
+dotnet add src/KASA.Infrastructure/KASA.Infrastructure.csproj package Microsoft.EntityFrameworkCore --version 10.0.0
+dotnet add src/KASA.Infrastructure/KASA.Infrastructure.csproj package Npgsql.EntityFrameworkCore.PostgreSQL --version 10.0.0
+dotnet add src/KASA.Infrastructure/KASA.Infrastructure.csproj package Microsoft.EntityFrameworkCore.Design --version 10.0.0
+dotnet add src/KASA.Infrastructure/KASA.Infrastructure.csproj package Serilog.AspNetCore --version 9.0.0
+dotnet add src/KASA.Infrastructure/KASA.Infrastructure.csproj package Serilog.Sinks.ApplicationInsights --version 4.0.0
+
+# API
+dotnet add src/KASA.API/KASA.API.csproj package Microsoft.AspNetCore.Authentication.JwtBearer --version 10.0.0
+dotnet add src/KASA.API/KASA.API.csproj package Microsoft.AspNetCore.SignalR --version 1.2.0
+dotnet add src/KASA.API/KASA.API.csproj package Swashbuckle.AspNetCore --version 7.3.1
+dotnet add src/KASA.API/KASA.API.csproj package AspNetCore.HealthChecks.NpgSql --version 9.0.0
+
+# Web
+dotnet add src/KASA.Web/KASA.Web.csproj package MudBlazor --version 8.3.0
+
+# Test
+dotnet add tests/KASA.Domain.Tests/KASA.Domain.Tests.csproj package FluentAssertions --version 8.2.0
+dotnet add tests/KASA.Application.Tests/KASA.Application.Tests.csproj package FluentAssertions --version 8.2.0
+dotnet add tests/KASA.Application.Tests/KASA.Application.Tests.csproj package Moq --version 4.20.72
+dotnet add tests/KASA.Integration.Tests/KASA.Integration.Tests.csproj package Microsoft.AspNetCore.Mvc.Testing --version 10.0.0
+dotnet add tests/KASA.Integration.Tests/KASA.Integration.Tests.csproj package Testcontainers.PostgreSql --version 4.4.0
+
+# =============================================================
+# Cartelle struttura Clean Architecture
+# =============================================================
+Write-Host "Creazione struttura Clean Architecture..." -ForegroundColor Cyan
+
+# Domain
+@("Entities","ValueObjects","Events","Exceptions","Interfaces") | ForEach-Object {
+    New-Item -ItemType Directory -Force -Path "src/KASA.Domain/" | Out-Null
+}
+
+# Application
+@("Common/Behaviours","Common/Interfaces","Common/Mappings",
+  "Features/Auth/Commands","Features/Auth/Queries",
+  "Features/Finance/Commands","Features/Finance/Queries",
+  "Features/Kitchen/Commands","Features/Kitchen/Queries",
+  "Features/House/Commands","Features/House/Queries",
+  "Features/Pets/Commands","Features/Pets/Queries",
+  "Features/Notifications/Commands") | ForEach-Object {
+    New-Item -ItemType Directory -Force -Path "src/KASA.Application/" | Out-Null
+}
+
+# Infrastructure
+@("Persistence/Configurations","Persistence/Migrations",
+  "Persistence/Repositories","Services/OCR",
+  "Services/Email","Services/Push","Services/Storage") | ForEach-Object {
+    New-Item -ItemType Directory -Force -Path "src/KASA.Infrastructure/" | Out-Null
+}
+
+# API
+@("Controllers","Hubs","Middleware","Models") | ForEach-Object {
+    New-Item -ItemType Directory -Force -Path "src/KASA.API/" | Out-Null
+}
+
+# =============================================================
+# File placeholder .gitkeep
+# =============================================================
+Get-ChildItem -Recurse -Directory | Where-Object {
+    (Get-ChildItem .FullName | Measure-Object).Count -eq 0
+} | ForEach-Object {
+    New-Item -ItemType File -Force -Path "/.gitkeep" | Out-Null
+}
+
+# =============================================================
+# docker-compose.yml
+# =============================================================
+@"
+version: '3.9'
+
+services:
+  postgres:
+    image: postgres:17
+    container_name: kasa_postgres_dev
+    environment:
+      POSTGRES_DB: kasa_dev
+      POSTGRES_USER: kasa
+      POSTGRES_PASSWORD: kasa_dev_password
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+  api:
+    build:
+      context: .
+      dockerfile: src/KASA.API/Dockerfile
+    container_name: kasa_api
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Development
+      - ConnectionStrings__DefaultConnection=Host=postgres;Database=kasa_dev;Username=kasa;Password=kasa_dev_password
+    ports:
+      - "5000:8080"
+    depends_on:
+      - postgres
+
+volumes:
+  postgres_data:
