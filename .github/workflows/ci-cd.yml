@@ -141,6 +141,7 @@ jobs:
           host: ${{ secrets.VPS_HOST }}
           username: ${{ secrets.VPS_USER }}
           key: ${{ secrets.VPS_SSH_KEY }}
+          port: 2222
           script: |
             cd /opt/kasa
             docker login ghcr.io -u marco90dm -p ${{ secrets.GHCR_TOKEN }}
@@ -149,3 +150,4 @@ jobs:
             sleep 15
             docker compose ps
             echo "Deploy completato: $(date)"
+
